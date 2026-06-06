@@ -69,9 +69,10 @@ def main():
     ppl_dense = eval_ppl(args, model, tokenizer, device)
     print(f"  Dense PPL: {ppl_dense:.2f} ({time.time() - t0:.1f}s)")
 
-    # Prune with GReS 2:4
-    print(f"\n[3/4] Pruning with GReS 2:4 (permuted)...")
+    # Prune with GReS 2:4 (single-pass permutation)
+    print(f"\n[3/4] Pruning with GReS 2:4 (single-pass permutation)...")
     args.compensate = demo_args.compensate
+    args.perm_samples = 16
     t0 = time.time()
     prune_gres(args, model, tokenizer, device, prune_n=2, prune_m=4)
     prune_time = time.time() - t0

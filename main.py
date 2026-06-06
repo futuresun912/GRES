@@ -74,6 +74,8 @@ def main():
     parser.add_argument('--struct_mode', type=str, default="combined",
                         choices=["head", "neuron", "gqa_group", "combined"],
                         help='Structured pruning mode')
+    parser.add_argument('--perm_samples', type=int, default=16,
+                        help='Number of samples for permutation in single-pass (default: 16)')
     parser.add_argument('--save', type=str, default=None,
                         help='Directory to save results log')
     parser.add_argument('--save_model', type=str, default=None,
