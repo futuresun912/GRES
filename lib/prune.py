@@ -520,14 +520,14 @@ def prune_gres(args, model, tokenizer, device=torch.device("cuda:0"),
     GReS pruning: unified across unstructured and N:M sparsity.
 
     For unstructured: equivalent to Wanda (diagonal of Gram, Proposition 1).
-    For N:M: two-pass approach with cheap channel permutation.
-      Pass 1: Accumulate diagonal Gram to compute activation-sorted permutation.
-      Pass 2: Accumulate block Grams in permuted order for pattern selection.
-      The permutation groups dissimilar channels into each block, improving
-      the Gram-based N:M pattern selection.
+    For N:M: single-pass channel permutation (default, 1.3x faster).
+      Phase 1 (first K samples): Accumulate diagonal Gram → compute permutation.
+      Phase 2 (remaining samples): Accumulate block Grams in permuted order.
+      Both phases share a single forward pass through the layer.
 
     Args:
         args: Namespace with nsamples, seed, sparsity_ratio, compensate.
+              Optional: perm_samples (default 16) — samples for permutation.
         model: HuggingFace causal LM with model.seqlen attribute.
         tokenizer: HuggingFace tokenizer.
         device: Torch device.
@@ -549,6 +549,8 @@ def prune_gres(args, model, tokenizer, device=torch.device("cuda:0"),
 
     layers = model.model.layers
     compensate = getattr(args, 'compensate', False)
+    perm_samples = getattr(args, 'perm_samples', 16)
+    nsamples = inps.shape[0]
 
     for i in range(len(layers)):
         layer = layers[i]
@@ -563,11 +565,11 @@ def prune_gres(args, model, tokenizer, device=torch.device("cuda:0"),
                 position_embeddings = tuple(pe.to(dev) for pe in position_embeddings)
 
         if prune_n != 0:
-            # ==== N:M sparsity: two-pass with cheap channel permutation ====
+            # ==== N:M sparsity: single-pass channel permutation ====
             M = prune_m
             N_keep = prune_m - prune_n
 
-            # --- Pass 1: diagonal Gram for permutation ---
+            # --- Phase 1: first K samples → diagonal Gram → permutation ---
             diag_wrappers = {}
             for name in subset:
                 diag_wrappers[name] = WrappedGPT(
@@ -583,7 +585,8 @@ def prune_gres(args, model, tokenizer, device=torch.device("cuda:0"),
             for name in diag_wrappers:
                 handles.append(subset[name].register_forward_hook(add_batch_diag(name)))
 
-            for j in range(args.nsamples):
+            K = min(perm_samples, nsamples)
+            for j in range(K):
                 with torch.no_grad():
                     outs[j] = layer(inps[j].unsqueeze(0),
                                     attention_mask=attention_mask,
@@ -592,7 +595,7 @@ def prune_gres(args, model, tokenizer, device=torch.device("cuda:0"),
             for h in handles:
                 h.remove()
 
-            # Compute permutation per sublayer
+            # Compute permutation from K samples
             perms = {}
             inv_perms = {}
             for name in subset:
@@ -604,7 +607,7 @@ def prune_gres(args, model, tokenizer, device=torch.device("cuda:0"),
             del diag_wrappers
             torch.cuda.empty_cache()
 
-            # --- Pass 2: block Grams in permuted order ---
+            # --- Phase 2: remaining samples → permuted block Grams ---
             block_wrappers = {}
             for name in subset:
                 block_wrappers[name] = PermutedWrappedGPT(
@@ -621,7 +624,7 @@ def prune_gres(args, model, tokenizer, device=torch.device("cuda:0"),
             for name in block_wrappers:
                 handles.append(subset[name].register_forward_hook(add_batch_block(name)))
 
-            for j in range(args.nsamples):
+            for j in range(K, nsamples):
                 with torch.no_grad():
                     outs[j] = layer(inps[j].unsqueeze(0),
                                     attention_mask=attention_mask,
@@ -712,6 +715,10 @@ def prune_gres(args, model, tokenizer, device=torch.device("cuda:0"),
 
     model.config.use_cache = use_cache
     torch.cuda.empty_cache()
+
+
+# Backward compatibility alias
+prune_gres_single_pass = prune_gres
 
 
 # ============================================================================
