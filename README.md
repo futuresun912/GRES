@@ -1,6 +1,6 @@
-# GReS: Gram-based Removal Saliency for One-Shot LLM Pruning
+# GReS: Correlation-Aware One-Shot Pruning of LLMs across Granularities
 
-**Paper**: *GReS: Unified Gram-Based Pruning for LLMs Across Unstructured, Semi-Structured, and Structured Granularities*
+**Paper**: *GReS: Correlation-Aware One-Shot Pruning of LLMs across Granularities*
 **Venue**: ICDM 2026 (under review)
 
 ## Abstract
@@ -183,7 +183,7 @@ gres/
 @inproceedings{gres2026,
   title={GReS: Unified Gram-Based Pruning for LLMs Across Unstructured, Semi-Structured, and Structured Granularities},
   author={Anonymous},
-  booktitle={IEEE International Conference on Data Mining (ICDM)},
+  booktitle={IEEE International Conference on Data Mining (ICDM) (under review)},
   year={2026}
 }
 ```
