@@ -1,7 +1,7 @@
 # GReS: Correlation-Aware One-Shot Pruning of LLMs across Granularities
 
 **Paper**: *GReS: Correlation-Aware One-Shot Pruning of LLMs across Granularities*
-**Venue**: ICDM 2026 (under review)
+**Venue**: ICDM 2026
 
 ## Abstract
 
@@ -182,8 +182,8 @@ gres/
 ```bibtex
 @inproceedings{gres2026,
   title={GReS: Unified Gram-Based Pruning for LLMs Across Unstructured, Semi-Structured, and Structured Granularities},
-  author={Anonymous},
-  booktitle={IEEE International Conference on Data Mining (ICDM) (under review)},
+  author={Sun, Lu and Liu, Jiayang and Wen, Rui},
+  booktitle={IEEE International Conference on Data Mining (ICDM)},
   year={2026}
 }
 ```
